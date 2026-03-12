@@ -1,9 +1,13 @@
-const catchAsync = require('../utils/catchAsync');
-const { success, created, paginated } = require('../utils/response');
-const bookingService = require('../services/booking.service');
+const catchAsync = require("../utils/catchAsync");
+const { success, created, paginated } = require("../utils/response");
+const bookingService = require("../services/booking.service");
+const bookingStatsService = require("../services/bookingStats.service");
 
 const list = catchAsync(async (req, res) => {
-  const { bookings, pagination } = await bookingService.list(req.studioId, req.query);
+  const { bookings, pagination } = await bookingService.list(
+    req.studioId,
+    req.query,
+  );
   paginated(res, bookings, pagination);
 });
 
@@ -22,4 +26,14 @@ const cancel = catchAsync(async (req, res) => {
   success(res, booking);
 });
 
-module.exports = { list, getById, create, cancel };
+const remove = catchAsync(async (req, res) => {
+  await bookingService.remove(req.studioId, req.params.id);
+  success(res, { message: "Booking deleted" });
+});
+
+const getStats = catchAsync(async (req, res) => {
+  const stats = await bookingStatsService.getStats(req.studioId);
+  success(res, stats);
+});
+
+module.exports = { list, getById, create, cancel, remove, getStats };

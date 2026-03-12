@@ -1,7 +1,11 @@
-const router = require('express').Router();
-const trainerController = require('../controllers/trainer.controller');
-const validate = require('../middleware/validate');
-const { createTrainerRules, updateTrainerRules } = require('../middleware/validators/trainer.validator');
+const router = require("express").Router();
+const trainerController = require("../controllers/trainer.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createTrainerRules,
+  updateTrainerRules,
+} = require("../middleware/validators/trainer.validator");
 
 /**
  * @swagger
@@ -76,8 +80,9 @@ const { createTrainerRules, updateTrainerRules } = require('../middleware/valida
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.get('/', trainerController.list);
-router.post('/', validate(createTrainerRules), trainerController.create);
+router.get("/", trainerController.list);
+router.get("/stats", trainerController.getStats);
+router.post("/", validate(createTrainerRules), trainerController.create);
 
 /**
  * @swagger
@@ -147,8 +152,8 @@ router.post('/', validate(createTrainerRules), trainerController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', trainerController.getById);
-router.put('/:id', validate(updateTrainerRules), trainerController.update);
-router.delete('/:id', trainerController.remove);
+router.get("/:id", trainerController.getById);
+router.put("/:id", validate(updateTrainerRules), trainerController.update);
+router.delete("/:id", authorize("owner"), trainerController.remove);
 
 module.exports = router;

@@ -1,9 +1,13 @@
-const catchAsync = require('../utils/catchAsync');
-const { success, created, paginated } = require('../utils/response');
-const paymentService = require('../services/payment.service');
+const catchAsync = require("../utils/catchAsync");
+const { success, created, paginated } = require("../utils/response");
+const paymentService = require("../services/payment.service");
+const paymentStatsService = require("../services/paymentStats.service");
 
 const list = catchAsync(async (req, res) => {
-  const { payments, pagination } = await paymentService.list(req.studioId, req.query);
+  const { payments, pagination } = await paymentService.list(
+    req.studioId,
+    req.query,
+  );
   paginated(res, payments, pagination);
 });
 
@@ -17,4 +21,14 @@ const create = catchAsync(async (req, res) => {
   created(res, payment);
 });
 
-module.exports = { list, getById, create };
+const remove = catchAsync(async (req, res) => {
+  await paymentService.remove(req.studioId, req.params.id);
+  success(res, { message: "Payment deleted" });
+});
+
+const getStats = catchAsync(async (req, res) => {
+  const stats = await paymentStatsService.getStats(req.studioId);
+  success(res, stats);
+});
+
+module.exports = { list, getById, create, remove, getStats };

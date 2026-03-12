@@ -1,9 +1,25 @@
-const { sequelize, Studio, User, RefreshToken } = require('../models');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
-const AppError = require('../utils/AppError');
+const {
+  sequelize,
+  Studio,
+  User,
+  RefreshToken,
+  Subscription,
+  Plan,
+} = require("../models");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} = require("../utils/jwt");
+const AppError = require("../utils/AppError");
+const { createTrialSubscription } = require("./subscription.service");
 
 const generateTokens = async (user) => {
-  const payload = { userId: user.id, studioId: user.studio_id, role: user.role };
+  const payload = {
+    userId: user.id,
+    studioId: user.studio_id,
+    role: user.role,
+  };
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
@@ -19,26 +35,65 @@ const generateTokens = async (user) => {
   return { accessToken, refreshToken };
 };
 
+const generateUniqueSlug = async (baseName) => {
+  const base = baseName
+    .toLowerCase()
+    .replace(/[ğ]/g, "g")
+    .replace(/[ü]/g, "u")
+    .replace(/[ş]/g, "s")
+    .replace(/[ı]/g, "i")
+    .replace(/[ö]/g, "o")
+    .replace(/[ç]/g, "c")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const suffix = Math.random().toString(36).substring(2, 6);
+  let slug = `${base}-${suffix}`;
+
+  const exists = await Studio.findOne({ where: { slug } });
+  if (exists) {
+    slug = `${base}-${Math.random().toString(36).substring(2, 8)}`;
+  }
+  return slug;
+};
+
 const register = async (data) => {
-  const existingStudio = await Studio.findOne({ where: { slug: data.studioSlug } });
-  if (existingStudio) {
-    throw AppError.conflict('Studio slug already taken');
+  if (data.studioSlug) {
+    const existingStudio = await Studio.findOne({
+      where: { slug: data.studioSlug },
+    });
+    if (existingStudio) {
+      throw AppError.conflict("Studio slug already taken");
+    }
   }
 
-  const result = await sequelize.transaction(async (t) => {
-    const studio = await Studio.create({
-      name: data.studioName,
-      slug: data.studioSlug,
-    }, { transaction: t });
+  const studioName =
+    data.studioName || `${data.firstName} ${data.lastName} Studio`;
+  const studioSlug = data.studioSlug || (await generateUniqueSlug(studioName));
 
-    const user = await User.create({
-      studio_id: studio.id,
-      email: data.email,
-      password: data.password,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      role: 'owner',
-    }, { transaction: t });
+  const result = await sequelize.transaction(async (t) => {
+    const studio = await Studio.create(
+      {
+        name: studioName,
+        slug: studioSlug,
+        settings: { onboarding_completed: false },
+      },
+      { transaction: t },
+    );
+
+    const user = await User.create(
+      {
+        studio_id: studio.id,
+        email: data.email,
+        password: data.password,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        role: "owner",
+      },
+      { transaction: t },
+    );
+
+    await createTrialSubscription(studio.id, t);
 
     return { studio, user };
   });
@@ -57,16 +112,16 @@ const login = async ({ email, password, studioSlug }) => {
 
   const user = await User.findOne({ where, include });
   if (!user) {
-    throw AppError.unauthorized('Invalid credentials');
+    throw AppError.unauthorized("Invalid credentials");
   }
 
   if (!user.is_active) {
-    throw AppError.unauthorized('Account is inactive');
+    throw AppError.unauthorized("Account is inactive");
   }
 
   const isValid = await user.validatePassword(password);
   if (!isValid) {
-    throw AppError.unauthorized('Invalid credentials');
+    throw AppError.unauthorized("Invalid credentials");
   }
 
   const tokens = await generateTokens(user);
@@ -78,15 +133,19 @@ const refresh = async (refreshTokenStr) => {
   try {
     decoded = verifyRefreshToken(refreshTokenStr);
   } catch {
-    throw AppError.unauthorized('Invalid refresh token');
+    throw AppError.unauthorized("Invalid refresh token");
   }
 
   const storedToken = await RefreshToken.findOne({
     where: { token: refreshTokenStr },
   });
 
-  if (!storedToken || storedToken.revoked_at || storedToken.expires_at < new Date()) {
-    throw AppError.unauthorized('Refresh token is invalid or expired');
+  if (
+    !storedToken ||
+    storedToken.revoked_at ||
+    storedToken.expires_at < new Date()
+  ) {
+    throw AppError.unauthorized("Refresh token is invalid or expired");
   }
 
   // Revoke old token (rotation)
@@ -94,7 +153,7 @@ const refresh = async (refreshTokenStr) => {
 
   const user = await User.findByPk(decoded.userId);
   if (!user || !user.is_active) {
-    throw AppError.unauthorized('User not found or inactive');
+    throw AppError.unauthorized("User not found or inactive");
   }
 
   const tokens = await generateTokens(user);
@@ -103,7 +162,9 @@ const refresh = async (refreshTokenStr) => {
 
 const logout = async (refreshTokenStr) => {
   if (!refreshTokenStr) return;
-  const token = await RefreshToken.findOne({ where: { token: refreshTokenStr } });
+  const token = await RefreshToken.findOne({
+    where: { token: refreshTokenStr },
+  });
   if (token) {
     await token.update({ revoked_at: new Date() });
   }
@@ -111,10 +172,35 @@ const logout = async (refreshTokenStr) => {
 
 const me = async (userId) => {
   const user = await User.findByPk(userId, {
-    include: [{ model: Studio }],
+    include: [
+      {
+        model: Studio,
+        include: [
+          {
+            model: Subscription,
+            include: [
+              {
+                model: Plan,
+                attributes: {
+                  exclude: [
+                    "iyzico_product_reference_code",
+                    "iyzico_pricing_plan_reference_code",
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
   });
-  if (!user) throw AppError.notFound('User not found');
+  if (!user) throw AppError.notFound("User not found");
   return user.toJSON();
 };
 
-module.exports = { register, login, refresh, logout, me };
+const checkSlug = async (slug) => {
+  const existing = await Studio.findOne({ where: { slug } });
+  return { available: !existing };
+};
+
+module.exports = { register, login, refresh, logout, me, checkSlug };

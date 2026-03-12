@@ -1,9 +1,13 @@
-const catchAsync = require('../utils/catchAsync');
-const { success, created, paginated } = require('../utils/response');
-const classService = require('../services/class.service');
+const catchAsync = require("../utils/catchAsync");
+const { success, created, paginated } = require("../utils/response");
+const classService = require("../services/class.service");
+const classStatsService = require("../services/classStats.service");
 
 const list = catchAsync(async (req, res) => {
-  const { classes, pagination } = await classService.list(req.studioId, req.query);
+  const { classes, pagination } = await classService.list(
+    req.studioId,
+    req.query,
+  );
   paginated(res, classes, pagination);
 });
 
@@ -24,7 +28,12 @@ const update = catchAsync(async (req, res) => {
 
 const remove = catchAsync(async (req, res) => {
   await classService.remove(req.studioId, req.params.id);
-  success(res, { message: 'Class deleted' });
+  success(res, { message: "Class deleted" });
 });
 
-module.exports = { list, getById, create, update, remove };
+const getStats = catchAsync(async (req, res) => {
+  const stats = await classStatsService.getStats(req.studioId);
+  success(res, stats);
+});
+
+module.exports = { list, getById, create, update, remove, getStats };

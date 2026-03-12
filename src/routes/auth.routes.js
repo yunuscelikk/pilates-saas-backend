@@ -1,8 +1,12 @@
-const router = require('express').Router();
-const authController = require('../controllers/auth.controller');
-const validate = require('../middleware/validate');
-const { registerRules, loginRules, refreshRules } = require('../middleware/validators/auth.validator');
-const { authenticate } = require('../middleware/auth');
+const router = require("express").Router();
+const authController = require("../controllers/auth.controller");
+const validate = require("../middleware/validate");
+const {
+  registerRules,
+  loginRules,
+  refreshRules,
+} = require("../middleware/validators/auth.validator");
+const { authenticate } = require("../middleware/auth");
 
 /**
  * @swagger
@@ -66,7 +70,10 @@ const { authenticate } = require('../middleware/auth');
  *       409:
  *         description: Studio slug already taken
  */
-router.post('/register', validate(registerRules), authController.register);
+router.post("/register", validate(registerRules), authController.register);
+
+// Check slug availability
+router.get("/check-slug/:slug", authController.checkSlug);
 
 /**
  * @swagger
@@ -119,7 +126,7 @@ router.post('/register', validate(registerRules), authController.register);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.post('/login', validate(loginRules), authController.login);
+router.post("/login", validate(loginRules), authController.login);
 
 /**
  * @swagger
@@ -161,7 +168,7 @@ router.post('/login', validate(loginRules), authController.login);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.post('/refresh', validate(refreshRules), authController.refresh);
+router.post("/refresh", validate(refreshRules), authController.refresh);
 
 /**
  * @swagger
@@ -184,7 +191,7 @@ router.post('/refresh', validate(refreshRules), authController.refresh);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.post('/logout', authenticate, authController.logout);
+router.post("/logout", authenticate, authController.logout);
 
 /**
  * @swagger
@@ -213,6 +220,6 @@ router.post('/logout', authenticate, authController.logout);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/me', authenticate, authController.getMe);
+router.get("/me", authenticate, authController.getMe);
 
 module.exports = router;

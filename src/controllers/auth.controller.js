@@ -1,6 +1,6 @@
-const catchAsync = require('../utils/catchAsync');
-const { success, created } = require('../utils/response');
-const authService = require('../services/auth.service');
+const catchAsync = require("../utils/catchAsync");
+const { success, created } = require("../utils/response");
+const authService = require("../services/auth.service");
 
 const register = catchAsync(async (req, res) => {
   const result = await authService.register(req.body);
@@ -19,7 +19,7 @@ const refresh = catchAsync(async (req, res) => {
 
 const logout = catchAsync(async (req, res) => {
   await authService.logout(req.body.refreshToken);
-  success(res, { message: 'Logged out successfully' });
+  success(res, { message: "Logged out successfully" });
 });
 
 const getMe = catchAsync(async (req, res) => {
@@ -27,4 +27,9 @@ const getMe = catchAsync(async (req, res) => {
   success(res, result);
 });
 
-module.exports = { register, login, refresh, logout, getMe };
+const checkSlug = catchAsync(async (req, res) => {
+  const result = await authService.checkSlug(req.params.slug);
+  success(res, result);
+});
+
+module.exports = { register, login, refresh, logout, getMe, checkSlug };

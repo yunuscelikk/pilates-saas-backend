@@ -1,7 +1,10 @@
-const router = require('express').Router();
-const paymentController = require('../controllers/payment.controller');
-const validate = require('../middleware/validate');
-const { createPaymentRules } = require('../middleware/validators/payment.validator');
+const router = require("express").Router();
+const paymentController = require("../controllers/payment.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createPaymentRules,
+} = require("../middleware/validators/payment.validator");
 
 /**
  * @swagger
@@ -101,8 +104,10 @@ const { createPaymentRules } = require('../middleware/validators/payment.validat
  *       404:
  *         description: Member or membership not found
  */
-router.get('/', paymentController.list);
-router.post('/', validate(createPaymentRules), paymentController.create);
+router.get("/", paymentController.list);
+router.post("/", validate(createPaymentRules), paymentController.create);
+
+router.get("/stats", paymentController.getStats);
 
 /**
  * @swagger
@@ -127,6 +132,7 @@ router.post('/', validate(createPaymentRules), paymentController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', paymentController.getById);
+router.get("/:id", paymentController.getById);
+router.delete("/:id", authorize("owner"), paymentController.remove);
 
 module.exports = router;

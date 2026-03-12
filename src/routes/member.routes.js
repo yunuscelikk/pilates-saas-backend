@@ -1,7 +1,12 @@
-const router = require('express').Router();
-const memberController = require('../controllers/member.controller');
-const validate = require('../middleware/validate');
-const { createMemberRules, updateMemberRules } = require('../middleware/validators/member.validator');
+const router = require("express").Router();
+const memberController = require("../controllers/member.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const checkPlanLimit = require("../middleware/checkPlanLimit");
+const {
+  createMemberRules,
+  updateMemberRules,
+} = require("../middleware/validators/member.validator");
 
 /**
  * @swagger
@@ -91,8 +96,15 @@ const { createMemberRules, updateMemberRules } = require('../middleware/validato
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/', memberController.list);
-router.post('/', validate(createMemberRules), memberController.create);
+router.get("/", memberController.list);
+router.post(
+  "/",
+  checkPlanLimit("members"),
+  validate(createMemberRules),
+  memberController.create,
+);
+
+router.get("/stats", memberController.getStats);
 
 /**
  * @swagger
@@ -169,8 +181,8 @@ router.post('/', validate(createMemberRules), memberController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', memberController.getById);
-router.put('/:id', validate(updateMemberRules), memberController.update);
-router.delete('/:id', memberController.remove);
+router.get("/:id", memberController.getById);
+router.put("/:id", validate(updateMemberRules), memberController.update);
+router.delete("/:id", authorize("owner"), memberController.remove);
 
 module.exports = router;

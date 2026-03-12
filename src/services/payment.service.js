@@ -1,7 +1,7 @@
-const { Op } = require('sequelize');
-const { Payment, Member, Membership } = require('../models');
-const AppError = require('../utils/AppError');
-const { getPagination, formatPagination } = require('../utils/pagination');
+const { Op } = require("sequelize");
+const { Payment, Member, Membership } = require("../models");
+const AppError = require("../utils/AppError");
+const { getPagination, formatPagination } = require("../utils/pagination");
 
 const list = async (studioId, query) => {
   const { page, limit, offset } = getPagination(query);
@@ -15,12 +15,12 @@ const list = async (studioId, query) => {
   const { count, rows } = await Payment.forStudio(studioId).findAndCountAll({
     where,
     include: [
-      { model: Member, attributes: ['id', 'first_name', 'last_name'] },
-      { model: Membership, attributes: ['id', 'status'], required: false },
+      { model: Member, attributes: ["id", "first_name", "last_name"] },
+      { model: Membership, attributes: ["id", "status"], required: false },
     ],
     limit,
     offset,
-    order: [['payment_date', 'DESC']],
+    order: [["payment_date", "DESC"]],
   });
   return { payments: rows, pagination: formatPagination(count, page, limit) };
 };
@@ -28,21 +28,23 @@ const list = async (studioId, query) => {
 const getById = async (studioId, id) => {
   const payment = await Payment.forStudio(studioId).findByPk(id, {
     include: [
-      { model: Member, attributes: ['id', 'first_name', 'last_name'] },
+      { model: Member, attributes: ["id", "first_name", "last_name"] },
       { model: Membership, required: false },
     ],
   });
-  if (!payment) throw AppError.notFound('Payment not found');
+  if (!payment) throw AppError.notFound("Payment not found");
   return payment;
 };
 
 const create = async (studioId, data) => {
   const member = await Member.forStudio(studioId).findByPk(data.memberId);
-  if (!member) throw AppError.notFound('Member not found');
+  if (!member) throw AppError.notFound("Member not found");
 
   if (data.membershipId) {
-    const membership = await Membership.forStudio(studioId).findByPk(data.membershipId);
-    if (!membership) throw AppError.notFound('Membership not found');
+    const membership = await Membership.forStudio(studioId).findByPk(
+      data.membershipId,
+    );
+    if (!membership) throw AppError.notFound("Membership not found");
   }
 
   return Payment.create({
@@ -57,4 +59,9 @@ const create = async (studioId, data) => {
   });
 };
 
-module.exports = { list, getById, create };
+const remove = async (studioId, id) => {
+  const payment = await getById(studioId, id);
+  await payment.destroy();
+};
+
+module.exports = { list, getById, create, remove };

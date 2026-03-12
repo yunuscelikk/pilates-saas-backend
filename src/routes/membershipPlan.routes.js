@@ -1,7 +1,11 @@
-const router = require('express').Router();
-const membershipPlanController = require('../controllers/membershipPlan.controller');
-const validate = require('../middleware/validate');
-const { createMembershipPlanRules, updateMembershipPlanRules } = require('../middleware/validators/membershipPlan.validator');
+const router = require("express").Router();
+const membershipPlanController = require("../controllers/membershipPlan.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createMembershipPlanRules,
+  updateMembershipPlanRules,
+} = require("../middleware/validators/membershipPlan.validator");
 
 /**
  * @swagger
@@ -85,8 +89,12 @@ const { createMembershipPlanRules, updateMembershipPlanRules } = require('../mid
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.get('/', membershipPlanController.list);
-router.post('/', validate(createMembershipPlanRules), membershipPlanController.create);
+router.get("/", membershipPlanController.list);
+router.post(
+  "/",
+  validate(createMembershipPlanRules),
+  membershipPlanController.create,
+);
 
 /**
  * @swagger
@@ -156,8 +164,12 @@ router.post('/', validate(createMembershipPlanRules), membershipPlanController.c
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', membershipPlanController.getById);
-router.put('/:id', validate(updateMembershipPlanRules), membershipPlanController.update);
-router.delete('/:id', membershipPlanController.remove);
+router.get("/:id", membershipPlanController.getById);
+router.put(
+  "/:id",
+  validate(updateMembershipPlanRules),
+  membershipPlanController.update,
+);
+router.delete("/:id", authorize("owner"), membershipPlanController.remove);
 
 module.exports = router;

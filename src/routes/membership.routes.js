@@ -1,7 +1,11 @@
-const router = require('express').Router();
-const membershipController = require('../controllers/membership.controller');
-const validate = require('../middleware/validate');
-const { createMembershipRules, updateMembershipRules } = require('../middleware/validators/membership.validator');
+const router = require("express").Router();
+const membershipController = require("../controllers/membership.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createMembershipRules,
+  updateMembershipRules,
+} = require("../middleware/validators/membership.validator");
 
 /**
  * @swagger
@@ -77,8 +81,9 @@ const { createMembershipRules, updateMembershipRules } = require('../middleware/
  *       404:
  *         description: Member or plan not found
  */
-router.get('/', membershipController.list);
-router.post('/', validate(createMembershipRules), membershipController.create);
+router.get("/", membershipController.list);
+router.get("/stats", membershipController.getStats);
+router.post("/", validate(createMembershipRules), membershipController.create);
 
 /**
  * @swagger
@@ -139,9 +144,13 @@ router.post('/', validate(createMembershipRules), membershipController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', membershipController.getById);
-router.put('/:id', validate(updateMembershipRules), membershipController.update);
-router.delete('/:id', membershipController.remove);
+router.get("/:id", membershipController.getById);
+router.put(
+  "/:id",
+  validate(updateMembershipRules),
+  membershipController.update,
+);
+router.delete("/:id", authorize("owner"), membershipController.remove);
 
 /**
  * @swagger
@@ -169,7 +178,7 @@ router.delete('/:id', membershipController.remove);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.patch('/:id/freeze', membershipController.freeze);
+router.patch("/:id/freeze", membershipController.freeze);
 
 /**
  * @swagger
@@ -197,6 +206,6 @@ router.patch('/:id/freeze', membershipController.freeze);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.patch('/:id/activate', membershipController.activate);
+router.patch("/:id/activate", membershipController.activate);
 
 module.exports = router;

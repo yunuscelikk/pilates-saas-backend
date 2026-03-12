@@ -1,5 +1,10 @@
-const router = require('express').Router();
-const notificationController = require('../controllers/notification.controller');
+const router = require("express").Router();
+const notificationController = require("../controllers/notification.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createNotificationRules,
+} = require("../middleware/validators/notification.validator");
 
 /**
  * @swagger
@@ -43,7 +48,12 @@ const notificationController = require('../controllers/notification.controller')
  *                 meta:
  *                   $ref: '#/components/schemas/PaginationMeta'
  */
-router.get('/', notificationController.list);
+router.get("/", notificationController.list);
+router.post(
+  "/",
+  validate(createNotificationRules),
+  notificationController.create,
+);
 
 /**
  * @swagger
@@ -56,7 +66,7 @@ router.get('/', notificationController.list);
  *       200:
  *         description: All notifications marked as read
  */
-router.patch('/read-all', notificationController.markAllRead);
+router.patch("/read-all", notificationController.markAllRead);
 
 /**
  * @swagger
@@ -81,6 +91,7 @@ router.patch('/read-all', notificationController.markAllRead);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.patch('/:id/read', notificationController.markRead);
+router.patch("/:id/read", notificationController.markRead);
+router.delete("/:id", authorize("owner"), notificationController.remove);
 
 module.exports = router;

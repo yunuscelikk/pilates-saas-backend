@@ -1,7 +1,12 @@
-const router = require('express').Router();
-const classController = require('../controllers/class.controller');
-const validate = require('../middleware/validate');
-const { createClassRules, updateClassRules } = require('../middleware/validators/class.validator');
+const router = require("express").Router();
+const classController = require("../controllers/class.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const checkPlanLimit = require("../middleware/checkPlanLimit");
+const {
+  createClassRules,
+  updateClassRules,
+} = require("../middleware/validators/class.validator");
 
 /**
  * @swagger
@@ -79,8 +84,14 @@ const { createClassRules, updateClassRules } = require('../middleware/validators
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.get('/', classController.list);
-router.post('/', validate(createClassRules), classController.create);
+router.get("/", classController.list);
+router.get("/stats", classController.getStats);
+router.post(
+  "/",
+  checkPlanLimit("classes"),
+  validate(createClassRules),
+  classController.create,
+);
 
 /**
  * @swagger
@@ -146,8 +157,8 @@ router.post('/', validate(createClassRules), classController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', classController.getById);
-router.put('/:id', validate(updateClassRules), classController.update);
-router.delete('/:id', classController.remove);
+router.get("/:id", classController.getById);
+router.put("/:id", validate(updateClassRules), classController.update);
+router.delete("/:id", authorize("owner"), classController.remove);
 
 module.exports = router;

@@ -1,6 +1,7 @@
-const catchAsync = require('../utils/catchAsync');
-const { success, created, paginated } = require('../utils/response');
-const userService = require('../services/user.service');
+const catchAsync = require("../utils/catchAsync");
+const { success, created, paginated } = require("../utils/response");
+const userService = require("../services/user.service");
+const staffStatsService = require("../services/staffStats.service");
 
 const list = catchAsync(async (req, res) => {
   const { users, pagination } = await userService.list(req.studioId, req.query);
@@ -24,7 +25,12 @@ const update = catchAsync(async (req, res) => {
 
 const remove = catchAsync(async (req, res) => {
   await userService.remove(req.studioId, req.params.id, req.user.id);
-  success(res, { message: 'User deleted' });
+  success(res, { message: "User deleted" });
 });
 
-module.exports = { list, getById, create, update, remove };
+const getStats = catchAsync(async (req, res) => {
+  const stats = await staffStatsService.getStats(req.studioId);
+  success(res, stats);
+});
+
+module.exports = { list, getById, create, update, remove, getStats };

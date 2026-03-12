@@ -1,7 +1,10 @@
-const router = require('express').Router();
-const bookingController = require('../controllers/booking.controller');
-const validate = require('../middleware/validate');
-const { createBookingRules } = require('../middleware/validators/booking.validator');
+const router = require("express").Router();
+const bookingController = require("../controllers/booking.controller");
+const { authorize } = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const {
+  createBookingRules,
+} = require("../middleware/validators/booking.validator");
 
 /**
  * @swagger
@@ -82,8 +85,10 @@ const { createBookingRules } = require('../middleware/validators/booking.validat
  *       409:
  *         description: Member already booked for this session
  */
-router.get('/', bookingController.list);
-router.post('/', validate(createBookingRules), bookingController.create);
+router.get("/", bookingController.list);
+router.post("/", validate(createBookingRules), bookingController.create);
+
+router.get("/stats", bookingController.getStats);
 
 /**
  * @swagger
@@ -108,7 +113,7 @@ router.post('/', validate(createBookingRules), bookingController.create);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', bookingController.getById);
+router.get("/:id", bookingController.getById);
 
 /**
  * @swagger
@@ -136,6 +141,7 @@ router.get('/:id', bookingController.getById);
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.patch('/:id/cancel', bookingController.cancel);
+router.patch("/:id/cancel", bookingController.cancel);
+router.delete("/:id", authorize("owner"), bookingController.remove);
 
 module.exports = router;
